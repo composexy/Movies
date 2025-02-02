@@ -28,7 +28,7 @@ class MainActivity : ComponentActivity() {
                         Box(
                             modifier = Modifier.padding(4.dp)
                         ) {
-                            SurfaceViewWithOffset()
+                            SurfaceViewWithHeavyWork()
                         }
                     }
                 }
