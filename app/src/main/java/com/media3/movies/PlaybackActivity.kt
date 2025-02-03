@@ -14,7 +14,7 @@ import androidx.compose.ui.Modifier
 import com.media3.movies.playback.VideoSurface
 import com.media3.movies.ui.theme.MoviesTheme
 
-class MainActivity : ComponentActivity() {
+class PlaybackActivity : ComponentActivity() {
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
