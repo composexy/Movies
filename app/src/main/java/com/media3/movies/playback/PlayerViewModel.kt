@@ -24,6 +24,10 @@ class PlayerViewModel(application: Application) : ViewModel() {
         exoPlayer.prepare()
         exoPlayer.play()
     }
+
+    fun stopPlayback() {
+        exoPlayer.stop()
+    }
     
     fun setStreamUrl(streamUrl: String) {
         val mediaItem = MediaItem.Builder().apply {
@@ -38,6 +42,10 @@ class PlayerViewModel(application: Application) : ViewModel() {
 
     fun clearSurface() {
         exoPlayer.setVideoSurface(null)
+    }
+
+    override fun onCleared() {
+        exoPlayer.release()
     }
 
     companion object {

@@ -53,6 +53,11 @@ class PlaybackActivity : ComponentActivity() {
         playerViewModel.startPlayback()
     }
 
+    override fun onStop() {
+        super.onStop()
+        playerViewModel.stopPlayback()
+    }
+
     companion object {
         private const val KEY_STREAM_URL = "KEY_STREAM_URL"
 
