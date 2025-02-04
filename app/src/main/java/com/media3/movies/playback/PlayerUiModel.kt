@@ -1,5 +1,5 @@
 package com.media3.movies.playback
 
-class PlayerUiModel(
-
+data class PlayerUiModel(
+    val videoAspectRatio: Float = 16.0f / 9.0f
 )

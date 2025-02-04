@@ -39,7 +39,7 @@ class PlaybackActivity : ComponentActivity() {
                         verticalArrangement = Arrangement.Center
                     ) {
                         VideoPlayer(
-                            modifier = Modifier.fillMaxWidth().aspectRatio(16.0f / 9.0f),
+                            modifier = Modifier.fillMaxWidth(),
                             playerViewModel = playerViewModel
                         )
                     }
