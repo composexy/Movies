@@ -5,11 +5,13 @@ import androidx.compose.foundation.AndroidExternalSurface
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -75,6 +77,7 @@ fun VideoOverlay(
             PlaybackControls(
                 modifier = Modifier.matchParentSize().clickable(onClick = onControlsClicked),
                 isFullScreen = playerUiModel.isFullScreen,
+                playerUiModel = playerUiModel,
                 onCollapseClicked = onCollapseClicked,
                 onExpandClicked = onExpandClicked
             )
@@ -85,6 +88,7 @@ fun VideoOverlay(
 @Composable
 fun PlaybackControls(
     modifier: Modifier = Modifier,
+    playerUiModel: PlayerUiModel,
     isFullScreen: Boolean,
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit
@@ -109,6 +113,87 @@ fun PlaybackControls(
                     description = "Enter full screen"
                 ) {
                     onExpandClicked()
+                }
+            }
+        }
+        Row(
+            modifier = Modifier.align(Alignment.Center),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
+        ) {
+            if (playerUiModel.playbackState.isReady()) {
+                PlaybackButton(
+                    R.drawable.startover,
+                    description = "Start over"
+                ) {
+
+                }
+                PlaybackButton(
+                    R.drawable.rewind,
+                    description = "Rewind"
+                ) {
+
+                }
+            }
+            when (playerUiModel.playbackState) {
+                PlaybackState.PLAYING -> {
+                    PlaybackButton(
+                        R.drawable.pause,
+                        description = "Pause"
+                    ) {
+
+                    }
+                }
+                PlaybackState.PAUSED -> {
+                    PlaybackButton(
+                        R.drawable.play,
+                        description = "Play"
+                    ) {
+
+                    }
+                }
+                PlaybackState.IDLE -> {
+                    PlaybackButton(
+                        R.drawable.play,
+                        description = "Start"
+                    ) {
+
+                    }
+                }
+                PlaybackState.BUFFERING -> {
+                    CircularProgressIndicator(
+                        modifier = Modifier.size(32.dp),
+                        color = Color.White
+                    )
+                }
+                PlaybackState.COMPLETED -> {
+                    PlaybackButton(
+                        R.drawable.replay,
+                        description = "Replay"
+                    ) {
+
+                    }
+                }
+                PlaybackState.ERROR -> {
+                    PlaybackButton(
+                        R.drawable.error,
+                        description = "Error"
+                    ) {
+
+                    }
+                    PlaybackButton(
+                        R.drawable.replay,
+                        description = "Retry"
+                    ) {
+
+                    }
+                }
+            }
+            if (playerUiModel.playbackState.isReady()) {
+                PlaybackButton(
+                    R.drawable.fastforward,
+                    description = "Fast forward"
+                ) {
+
                 }
             }
         }
