@@ -23,7 +23,10 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
+import com.media3.movies.playback.Init
 import com.media3.movies.playback.PlayerViewModel
+import com.media3.movies.playback.Start
+import com.media3.movies.playback.Stop
 import com.media3.movies.playback.VideoPlayer
 import com.media3.movies.ui.theme.MoviesTheme
 
@@ -39,7 +42,7 @@ class PlaybackActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val streamUrl = intent.getStringExtra(KEY_STREAM_URL) ?: throw IllegalArgumentException()
-        playerViewModel.setStreamUrl(streamUrl)
+        playerViewModel.handleAction(Init(streamUrl))
 
         setContent {
             val playerUiModel by playerViewModel.playerUiModel.collectAsState()
@@ -72,12 +75,12 @@ class PlaybackActivity : ComponentActivity() {
 
     override fun onStart() {
         super.onStart()
-        playerViewModel.startPlayback()
+        playerViewModel.handleAction(Start())
     }
 
     override fun onStop() {
         super.onStop()
-        playerViewModel.stopPlayback()
+        playerViewModel.handleAction(Stop)
     }
 
     companion object {

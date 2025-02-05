@@ -37,9 +37,9 @@ fun VideoPlayer(
                 }
         ) {
             onSurface { surface, _, _ ->
-                playerViewModel.setSurface(surface)
+                playerViewModel.handleAction(AttachSurface(surface))
                 surface.onDestroyed {
-                    playerViewModel.clearSurface()
+                    playerViewModel.handleAction(DetachSurface)
                 }
             }
         }
@@ -55,6 +55,9 @@ fun VideoPlayer(
             },
             onControlsClicked = {
                 playerViewModel.hidePlayerControls()
+            },
+            onAction = {
+                playerViewModel.handleAction(action = it)
             }
         )
     }
@@ -66,7 +69,8 @@ fun VideoOverlay(
     playerViewModel: PlayerViewModel,
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit,
-    onControlsClicked: () -> Unit
+    onControlsClicked: () -> Unit,
+    onAction: (Action) -> Unit
 ) {
     val playerUiModel by playerViewModel.playerUiModel.collectAsState()
 
@@ -79,7 +83,8 @@ fun VideoOverlay(
                 isFullScreen = playerUiModel.isFullScreen,
                 playerUiModel = playerUiModel,
                 onCollapseClicked = onCollapseClicked,
-                onExpandClicked = onExpandClicked
+                onExpandClicked = onExpandClicked,
+                onAction = onAction,
             )
         }
     }
@@ -91,7 +96,8 @@ fun PlaybackControls(
     playerUiModel: PlayerUiModel,
     isFullScreen: Boolean,
     onCollapseClicked: () -> Unit,
-    onExpandClicked: () -> Unit
+    onExpandClicked: () -> Unit,
+    onAction: (Action) -> Unit
 ) {
     Box(
         modifier = modifier.background(Color(0xA0000000))
@@ -125,13 +131,13 @@ fun PlaybackControls(
                     R.drawable.startover,
                     description = "Start over"
                 ) {
-
+                    onAction(Seek(0))
                 }
                 PlaybackButton(
                     R.drawable.rewind,
                     description = "Rewind"
                 ) {
-
+                    onAction(Rewind(15_000))
                 }
             }
             when (playerUiModel.playbackState) {
@@ -140,7 +146,7 @@ fun PlaybackControls(
                         R.drawable.pause,
                         description = "Pause"
                     ) {
-
+                        onAction(Pause)
                     }
                 }
                 PlaybackState.PAUSED -> {
@@ -148,7 +154,7 @@ fun PlaybackControls(
                         R.drawable.play,
                         description = "Play"
                     ) {
-
+                        onAction(Resume)
                     }
                 }
                 PlaybackState.IDLE -> {
@@ -156,7 +162,7 @@ fun PlaybackControls(
                         R.drawable.play,
                         description = "Start"
                     ) {
-
+                        onAction(Start())
                     }
                 }
                 PlaybackState.BUFFERING -> {
@@ -170,21 +176,20 @@ fun PlaybackControls(
                         R.drawable.replay,
                         description = "Replay"
                     ) {
-
+                        onAction(Start(0))
                     }
                 }
                 PlaybackState.ERROR -> {
                     PlaybackButton(
                         R.drawable.error,
                         description = "Error"
-                    ) {
-
-                    }
+                    )
                     PlaybackButton(
                         R.drawable.replay,
                         description = "Retry"
                     ) {
-
+                        // TODO: Pass in current position later
+                        onAction(Start(0))
                     }
                 }
             }
@@ -193,7 +198,7 @@ fun PlaybackControls(
                     R.drawable.fastforward,
                     description = "Fast forward"
                 ) {
-
+                    onAction(FastForward(15_000))
                 }
             }
         }

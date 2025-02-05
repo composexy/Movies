@@ -1,8 +1,6 @@
 package com.media3.movies.playback
 
 import android.app.Application
-import android.net.Uri
-import android.view.Surface
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.MediaItem
@@ -25,6 +23,46 @@ class PlayerViewModel(application: Application) : ViewModel() {
                 _playerUiModel.value = _playerUiModel.value.copy(
                     videoAspectRatio = videoAspectRatio
                 )
+            }
+        }
+
+        override fun onIsPlayingChanged(isPlaying: Boolean) {
+            if (isPlaying) {
+                _playerUiModel.value = _playerUiModel.value.copy(
+                    playbackState = PlaybackState.PLAYING
+                )
+            } else if (exoPlayer.playbackState == Player.STATE_READY) {
+                _playerUiModel.value = _playerUiModel.value.copy(
+                    playbackState = PlaybackState.PAUSED
+                )
+            }
+        }
+
+        override fun onPlaybackStateChanged(playbackState: Int) {
+            val state = when (playbackState) {
+                Player.STATE_IDLE -> {
+                    if (exoPlayer.playerError != null) {
+                        PlaybackState.ERROR
+                    } else {
+                        PlaybackState.IDLE
+                    }
+                }
+                Player.STATE_BUFFERING -> PlaybackState.BUFFERING
+                Player.STATE_READY -> {
+                    if (exoPlayer.playWhenReady) {
+                        PlaybackState.PLAYING
+                    } else {
+                        PlaybackState.PAUSED
+                    }
+                }
+                Player.STATE_ENDED -> PlaybackState.COMPLETED
+                else -> PlaybackState.IDLE
+            }
+            _playerUiModel.value = _playerUiModel.value.copy(
+                playbackState = state
+            )
+            if (state == PlaybackState.ERROR) {
+                showPlayerControls()
             }
         }
     }
@@ -61,28 +99,46 @@ class PlayerViewModel(application: Application) : ViewModel() {
         )
     }
 
-    fun startPlayback() {
-        exoPlayer.prepare()
-        exoPlayer.play()
-    }
-
-    fun stopPlayback() {
-        exoPlayer.stop()
-    }
-    
-    fun setStreamUrl(streamUrl: String) {
-        val mediaItem = MediaItem.Builder().apply {
-            setUri(Uri.parse(streamUrl))
+    fun handleAction(action: Action) {
+        when (action) {
+            is AttachSurface -> {
+                exoPlayer.setVideoSurface(action.surface)
+            }
+            DetachSurface -> {
+                exoPlayer.setVideoSurface(null)
+            }
+            is FastForward -> {
+                exoPlayer.seekTo(exoPlayer.currentPosition + action.amountInMs)
+            }
+            is Init -> {
+                val mediaItem = MediaItem.Builder().setUri(action.streamUrl).build()
+                exoPlayer.setMediaItem(mediaItem)
+            }
+            Pause -> {
+                exoPlayer.pause()
+            }
+            Resume -> {
+                exoPlayer.play()
+            }
+            is Rewind -> {
+                exoPlayer.seekTo(exoPlayer.currentPosition - action.amountInMs)
+            }
+            is Seek -> {
+                exoPlayer.seekTo(action.targetInMs)
+            }
+            is Start -> {
+                with(exoPlayer) {
+                    prepare()
+                    play()
+                    action.positionInMs?.let {
+                        seekTo(it)
+                    }
+                }
+            }
+            Stop -> {
+                exoPlayer.stop()
+            }
         }
-        exoPlayer.setMediaItem(mediaItem.build())
-    }
-    
-    fun setSurface(surface: Surface) {
-        exoPlayer.setVideoSurface(surface)
-    }
-
-    fun clearSurface() {
-        exoPlayer.setVideoSurface(null)
     }
 
     override fun onCleared() {
