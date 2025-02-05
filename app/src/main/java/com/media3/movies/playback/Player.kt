@@ -30,6 +30,9 @@ fun VideoPlayer(
     Box {
         AndroidExternalSurface(
             modifier = modifier.aspectRatio(playerUiModel.videoAspectRatio)
+                .clickable {
+                    playerViewModel.showPlayerControls()
+                }
         ) {
             onSurface { surface, _, _ ->
                 playerViewModel.setSurface(surface)
@@ -41,7 +44,16 @@ fun VideoPlayer(
 
         VideoOverlay(
             modifier = Modifier.matchParentSize(),
-            playerViewModel = playerViewModel
+            playerViewModel = playerViewModel,
+            onCollapseClicked = {
+                playerViewModel.exitFullScreen()
+            },
+            onExpandClicked = {
+                playerViewModel.enterFullScreen()
+            },
+            onControlsClicked = {
+                playerViewModel.hidePlayerControls()
+            }
         )
     }
 }
@@ -49,23 +61,31 @@ fun VideoPlayer(
 @Composable
 fun VideoOverlay(
     modifier: Modifier = Modifier,
-    playerViewModel: PlayerViewModel
+    playerViewModel: PlayerViewModel,
+    onCollapseClicked: () -> Unit,
+    onExpandClicked: () -> Unit,
+    onControlsClicked: () -> Unit
 ) {
+    val playerUiModel by playerViewModel.playerUiModel.collectAsState()
+
     Box(
         modifier = modifier
     ) {
-        PlaybackControls(
-            modifier = Modifier.matchParentSize(),
-            onCollapseClicked = {},
-            onExpandClicked = {}
-        )
+        if (playerUiModel.playerControlsVisible) {
+            PlaybackControls(
+                modifier = Modifier.matchParentSize().clickable(onClick = onControlsClicked),
+                isFullScreen = playerUiModel.isFullScreen,
+                onCollapseClicked = onCollapseClicked,
+                onExpandClicked = onExpandClicked
+            )
+        }
     }
 }
 
 @Composable
 fun PlaybackControls(
     modifier: Modifier = Modifier,
-    isFullScreen: Boolean = false,
+    isFullScreen: Boolean,
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit
 ) {

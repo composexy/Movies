@@ -1,7 +1,9 @@
 package com.media3.movies
 
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
@@ -14,8 +16,13 @@ import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.material3.Surface
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
+import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.core.view.WindowCompat
+import androidx.core.view.WindowInsetsCompat
 import com.media3.movies.playback.PlayerViewModel
 import com.media3.movies.playback.VideoPlayer
 import com.media3.movies.ui.theme.MoviesTheme
@@ -26,6 +33,7 @@ class PlaybackActivity : ComponentActivity() {
         PlayerViewModel.buildFactory(application)
     }
 
+    @SuppressLint("SourceLockedOrientationActivity")
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
@@ -34,17 +42,29 @@ class PlaybackActivity : ComponentActivity() {
         playerViewModel.setStreamUrl(streamUrl)
 
         setContent {
+            val playerUiModel by playerViewModel.playerUiModel.collectAsState()
+
             MoviesTheme {
                 Surface {
                     Box(
                         modifier = Modifier.fillMaxSize(),
                         contentAlignment = Alignment.Center
                     ) {
-                        VideoPlayer(
-                            modifier = Modifier.fillMaxWidth(),
-                            playerViewModel = playerViewModel
-                        )
+                        VideoPlayer(playerViewModel = playerViewModel)
                     }
+                }
+            }
+
+            LaunchedEffect(playerUiModel.isFullScreen) {
+                val window = this@PlaybackActivity.window
+                val windowInsetsController =
+                    WindowCompat.getInsetsController(window, window.decorView)
+                if (playerUiModel.isFullScreen) {
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_LANDSCAPE
+                    windowInsetsController.hide(WindowInsetsCompat.Type.systemBars())
+                } else {
+                    requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+                    windowInsetsController.show(WindowInsetsCompat.Type.systemBars())
                 }
             }
         }

@@ -37,6 +37,30 @@ class PlayerViewModel(application: Application) : ViewModel() {
         return ExoPlayer.Builder(application).build()
     }
 
+    fun showPlayerControls() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            playerControlsVisible = true
+        )
+    }
+
+    fun hidePlayerControls() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            playerControlsVisible = false
+        )
+    }
+
+    fun enterFullScreen() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            isFullScreen = true
+        )
+    }
+
+    fun exitFullScreen() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            isFullScreen = false
+        )
+    }
+
     fun startPlayback() {
         exoPlayer.prepare()
         exoPlayer.play()
