@@ -3,16 +3,24 @@ package com.media3.movies.playback
 import android.app.Application
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
+import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.Job
+import kotlinx.coroutines.delay
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.launch
 
 class PlayerViewModel(application: Application) : ViewModel() {
     private val _playerUiModel = MutableStateFlow(PlayerUiModel())
     val playerUiModel = _playerUiModel.asStateFlow()
+    private val playerCoroutineScope = CoroutineScope(Dispatchers.Main.immediate)
+    private var positionTrackingJob: Job? = null
 
     private val playerEventListener: Player.Listener = object : Player.Listener {
         override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -64,6 +72,14 @@ class PlayerViewModel(application: Application) : ViewModel() {
             if (state == PlaybackState.ERROR) {
                 showPlayerControls()
             }
+            when (playbackState) {
+                Player.STATE_READY -> {
+                    startTrackingPlaybackPosition()
+                }
+                else -> {
+                    stopTrackingPlaybackPosition()
+                }
+            }
         }
     }
 
@@ -73,6 +89,36 @@ class PlayerViewModel(application: Application) : ViewModel() {
 
     private fun buildExoPlayer(application: Application): ExoPlayer {
         return ExoPlayer.Builder(application).build()
+    }
+
+    private fun startTrackingPlaybackPosition() {
+        positionTrackingJob = playerCoroutineScope.launch {
+            while (true) {
+                val newTimelineUiModel = buildTimelineUiModel()
+                _playerUiModel.value = _playerUiModel.value.copy(
+                    timelineUiModel = newTimelineUiModel
+                )
+                delay(1000)
+            }
+        }
+    }
+
+    private fun stopTrackingPlaybackPosition() {
+        buildTimelineUiModel()
+        positionTrackingJob?.cancel()
+        positionTrackingJob = null
+    }
+
+    private fun buildTimelineUiModel(): TimelineUiModel? {
+        val duration = exoPlayer.contentDuration
+        if (duration == C.TIME_UNSET) return null
+        val currentPosition = exoPlayer.contentPosition
+        val bufferedPosition = exoPlayer.contentBufferedPosition
+        return TimelineUiModel(
+            durationInMs = duration,
+            currentPositionInMs = currentPosition,
+            bufferedPositionInMs = bufferedPosition
+        )
     }
 
     fun showPlayerControls() {

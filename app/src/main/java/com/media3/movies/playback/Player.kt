@@ -1,17 +1,22 @@
 package com.media3.movies.playback
 
 import androidx.annotation.DrawableRes
+import androidx.annotation.OptIn
 import androidx.compose.foundation.AndroidExternalSurface
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.aspectRatio
+import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -20,12 +25,18 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.unit.sp
+import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.ui.DefaultTimeBar
+import androidx.media3.ui.TimeBar
 import com.media3.movies.R
+import com.media3.movies.Utils
 
 @Composable
 fun VideoPlayer(
     modifier: Modifier = Modifier,
-    playerViewModel: PlayerViewModel
+    playerViewModel: PlayerViewModel,
 ) {
     val playerUiModel by playerViewModel.playerUiModel.collectAsState()
 
@@ -70,7 +81,7 @@ fun VideoOverlay(
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit,
     onControlsClicked: () -> Unit,
-    onAction: (Action) -> Unit
+    onAction: (Action) -> Unit,
 ) {
     val playerUiModel by playerViewModel.playerUiModel.collectAsState()
 
@@ -97,7 +108,7 @@ fun PlaybackControls(
     isFullScreen: Boolean,
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit,
-    onAction: (Action) -> Unit
+    onAction: (Action) -> Unit,
 ) {
     Box(
         modifier = modifier.background(Color(0xA0000000))
@@ -188,8 +199,7 @@ fun PlaybackControls(
                         R.drawable.replay,
                         description = "Retry"
                     ) {
-                        // TODO: Pass in current position later
-                        onAction(Start(0))
+                        onAction(Start(playerUiModel.timelineUiModel?.currentPositionInMs))
                     }
                 }
             }
@@ -202,14 +212,78 @@ fun PlaybackControls(
                 }
             }
         }
+        playerUiModel.timelineUiModel?.let { timeline ->
+            Column(
+                modifier = Modifier.align(Alignment.BottomStart)
+            ) {
+                PlaybackPosition(
+                    contentPositionInMs = timeline.currentPositionInMs,
+                    contentDurationInMs = timeline.durationInMs
+                )
+                TimeBar(
+                    positionInMs = timeline.currentPositionInMs,
+                    durationInMs = timeline.durationInMs,
+                    bufferedPositionInMs = timeline.bufferedPositionInMs
+                ) {
+                    onAction(Seek(it.toLong()))
+                }
+            }
+        }
     }
+}
+
+@Composable
+fun PlaybackPosition(
+    contentPositionInMs: Long,
+    contentDurationInMs: Long,
+) {
+    val positionString = Utils.formatMsToString(contentPositionInMs)
+    val durationString = Utils.formatMsToString(contentDurationInMs)
+    Text(
+        text = "$positionString / $durationString",
+        fontSize = 10.sp
+    )
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+fun TimeBar(
+    positionInMs: Long,
+    durationInMs: Long,
+    bufferedPositionInMs: Long,
+    onSeek: (Float) -> Unit,
+) {
+    AndroidView(
+        modifier = Modifier.fillMaxWidth().wrapContentHeight(),
+        factory = { context ->
+            DefaultTimeBar(context).apply {
+                setScrubberColor(0xFFFF0000.toInt())
+                setPlayedColor(0xCCFF0000.toInt())
+                setBufferedColor(0x77FF0000)
+            }
+        },
+        update = { timeBar ->
+            with(timeBar) {
+                addListener(object : TimeBar.OnScrubListener {
+                    override fun onScrubStart(timeBar: TimeBar, position: Long) {}
+                    override fun onScrubMove(timeBar: TimeBar, position: Long) {}
+                    override fun onScrubStop(timeBar: TimeBar, position: Long, canceled: Boolean) {
+                        onSeek(position.toFloat())
+                    }
+                })
+                setDuration(durationInMs)
+                setPosition(positionInMs)
+                setBufferedPosition(bufferedPositionInMs)
+            }
+        }
+    )
 }
 
 @Composable
 fun PlaybackButton(
     @DrawableRes resourceId: Int,
     description: String,
-    onClick: () -> Unit = {}
+    onClick: () -> Unit = {},
 ) {
     Image(
         modifier = Modifier.size(32.dp).clickable(onClick = onClick),
