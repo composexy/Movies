@@ -14,3 +14,6 @@ data class FastForward(val amountInMs: Int) : Action
 data class Seek(val targetInMs: Long) : Action
 data class AttachSurface(val surface: Surface) : Action
 data object DetachSurface : Action
+data class SetVideoTrack(val track: VideoTrack) : Action
+data class SetAudioTrack(val track: AudioTrack) : Action
+data class SetSubtitleTrack(val track: SubtitleTrack) : Action

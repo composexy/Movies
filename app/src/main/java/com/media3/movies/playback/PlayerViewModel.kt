@@ -8,6 +8,7 @@ import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.TrackGroup
+import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
 import androidx.media3.common.util.UnstableApi
@@ -210,6 +211,94 @@ class PlayerViewModel(application: Application) : ViewModel() {
         return result
     }
 
+    private fun setVideoTrack(track: VideoTrack) {
+        val selectionBuilder = exoPlayer.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_VIDEO)
+        when {
+            track == VideoTrack.AUTO -> {
+                selectedVideoTrack = track
+            }
+            else -> {
+                val exoVideoTrack = videoTracksMap[track]
+                if (exoVideoTrack != null) {
+                    selectionBuilder.setOverrideForType(
+                        TrackSelectionOverride(
+                            exoVideoTrack.trackGroup,
+                            listOf(exoVideoTrack.trackIndexInGroup)
+                        )
+                    )
+                    selectedVideoTrack = track
+                }
+            }
+        }
+        exoPlayer.trackSelectionParameters = selectionBuilder.build()
+        _playerUiModel.value = _playerUiModel.value.copy(
+            trackSelectionUiModel = _playerUiModel.value.trackSelectionUiModel?.copy(
+                selectedVideoTrack = track
+            )
+        )
+    }
+
+    private fun setAudioTrack(track: AudioTrack) {
+        val trackDisabled = track == AudioTrack.NONE
+        val selectionBuilder = exoPlayer.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_AUDIO)
+            .setTrackTypeDisabled(C.TRACK_TYPE_AUDIO, trackDisabled)
+        when {
+            track === AudioTrack.AUTO || track === AudioTrack.NONE-> {
+                selectedAudioTrack = track
+            }
+            else -> {
+                val exoAudioTrack = audioTracksMap[track]
+                if (exoAudioTrack != null) {
+                    selectionBuilder.setOverrideForType(
+                        TrackSelectionOverride(
+                            exoAudioTrack.trackGroup,
+                            listOf(exoAudioTrack.trackIndexInGroup)
+                        )
+                    )
+                    selectedAudioTrack = track
+                }
+            }
+        }
+        exoPlayer.trackSelectionParameters = selectionBuilder.build()
+        _playerUiModel.value = _playerUiModel.value.copy(
+            trackSelectionUiModel = _playerUiModel.value.trackSelectionUiModel?.copy(
+                selectedAudioTrack = track
+            )
+        )
+    }
+
+    private fun setSubtitleTrack(track: SubtitleTrack) {
+        val trackDisabled = track == SubtitleTrack.NONE
+        val selectionBuilder = exoPlayer.trackSelectionParameters.buildUpon()
+            .clearOverridesOfType(C.TRACK_TYPE_TEXT)
+            .setTrackTypeDisabled(C.TRACK_TYPE_TEXT, trackDisabled)
+        when {
+            track === SubtitleTrack.AUTO || track === SubtitleTrack.NONE-> {
+                selectedSubtitleTrack = track
+            }
+            else -> {
+                val exoSubtitleTrack = subtitleTracksMap[track]
+                if (exoSubtitleTrack != null) {
+                    selectionBuilder.setOverrideForType(
+                        TrackSelectionOverride(
+                            exoSubtitleTrack.trackGroup,
+                            listOf(exoSubtitleTrack.trackIndexInGroup)
+                        )
+                    )
+                    selectedSubtitleTrack = track
+                }
+            }
+        }
+        exoPlayer.trackSelectionParameters = selectionBuilder.build()
+        _playerUiModel.value = _playerUiModel.value.copy(
+            trackSelectionUiModel = _playerUiModel.value.trackSelectionUiModel?.copy(
+                selectedSubtitleTrack = track
+            )
+        )
+    }
+
     private val exoPlayer = buildExoPlayer(application).apply {
         addListener(playerEventListener)
     }
@@ -322,6 +411,15 @@ class PlayerViewModel(application: Application) : ViewModel() {
             }
             Stop -> {
                 exoPlayer.stop()
+            }
+            is SetAudioTrack -> {
+                setAudioTrack(action.track)
+            }
+            is SetSubtitleTrack -> {
+                setSubtitleTrack(action.track)
+            }
+            is SetVideoTrack -> {
+                setVideoTrack(action.track)
             }
         }
     }
