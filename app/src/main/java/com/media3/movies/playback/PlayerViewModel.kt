@@ -1,12 +1,16 @@
 package com.media3.movies.playback
 
 import android.app.Application
+import androidx.annotation.OptIn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.TrackGroup
+import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
+import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.media3.movies.R
 import kotlinx.coroutines.CoroutineScope
@@ -22,6 +26,18 @@ class PlayerViewModel(application: Application) : ViewModel() {
     val playerUiModel = _playerUiModel.asStateFlow()
     private val playerCoroutineScope = CoroutineScope(Dispatchers.Main.immediate)
     private var positionTrackingJob: Job? = null
+
+    private var selectedVideoTrack: VideoTrack = VideoTrack.AUTO
+    private var selectedAudioTrack: AudioTrack = AudioTrack.AUTO
+    private var selectedSubtitleTrack: SubtitleTrack = SubtitleTrack.AUTO
+    private var videoTracksMap: Map<VideoTrack, ExoPlayerTrack?> = emptyMap()
+    private var audioTracksMap: Map<AudioTrack, ExoPlayerTrack?> = emptyMap()
+    private var subtitleTracksMap: Map<SubtitleTrack, ExoPlayerTrack?> = emptyMap()
+
+    private class ExoPlayerTrack(
+        val trackGroup: TrackGroup,
+        val trackIndexInGroup: Int,
+    )
 
     private val playerEventListener: Player.Listener = object : Player.Listener {
         override fun onVideoSizeChanged(videoSize: VideoSize) {
@@ -86,12 +102,112 @@ class PlayerViewModel(application: Application) : ViewModel() {
                     hidePlaceHolderImage()
                 }
                 Player.STATE_ENDED,
-                Player.STATE_IDLE -> {
+                Player.STATE_IDLE,
+                    -> {
                     showPlaceHolderImage()
                 }
                 else -> {}
             }
         }
+
+        override fun onTracksChanged(tracks: Tracks) {
+            val newVideoTracks = mutableMapOf<VideoTrack, ExoPlayerTrack?>(
+                VideoTrack.AUTO to null
+            )
+            val newAudioTracks = mutableMapOf<AudioTrack, ExoPlayerTrack?>(
+                AudioTrack.AUTO to null,
+                AudioTrack.NONE to null
+            )
+            val newSubtitleTracks = mutableMapOf<SubtitleTrack, ExoPlayerTrack?>(
+                SubtitleTrack.AUTO to null,
+                SubtitleTrack.NONE to null
+            )
+
+            tracks.groups.forEach {
+                when (it.type) {
+                    C.TRACK_TYPE_AUDIO -> {
+                        newAudioTracks.putAll(extractAudioTracks(it))
+                    }
+                    C.TRACK_TYPE_TEXT -> {
+                        newSubtitleTracks.putAll(extractSubtitleTracks(it))
+                    }
+                    C.TRACK_TYPE_VIDEO -> {
+                        newVideoTracks.putAll(extractVideoTracks(it))
+                    }
+                }
+            }
+
+            videoTracksMap = newVideoTracks
+            audioTracksMap = newAudioTracks
+            subtitleTracksMap = newSubtitleTracks
+
+            _playerUiModel.value = _playerUiModel.value.copy(
+                trackSelectionUiModel = TrackSelectionUiModel(
+                    selectedVideoTrack = selectedVideoTrack,
+                    videoTracks = videoTracksMap.keys.toList(),
+                    selectedAudioTrack = selectedAudioTrack,
+                    audioTracks = audioTracksMap.keys.toList(),
+                    selectedSubtitleTrack = selectedSubtitleTrack,
+                    subtitleTracks = subtitleTracksMap.keys.toList()
+                )
+            )
+        }
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun extractAudioTracks(info: Tracks.Group): Map<AudioTrack, ExoPlayerTrack> {
+        val result = mutableMapOf<AudioTrack, ExoPlayerTrack>()
+        for (trackIndex in 0 until info.mediaTrackGroup.length) {
+            if (info.isTrackSupported(trackIndex)) {
+                val format = info.mediaTrackGroup.getFormat(trackIndex)
+                val language = format.language
+                if (language != null) {
+                    val audioTrack = AudioTrack(language)
+                    result[audioTrack] = ExoPlayerTrack(
+                        trackGroup = info.mediaTrackGroup,
+                        trackIndexInGroup = trackIndex
+                    )
+                }
+            }
+        }
+        return result
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun extractVideoTracks(info: Tracks.Group): Map<VideoTrack, ExoPlayerTrack> {
+        val result = mutableMapOf<VideoTrack, ExoPlayerTrack>()
+        for (trackIndex in 0 until info.mediaTrackGroup.length) {
+            if (info.isTrackSupported(trackIndex)) {
+                val format = info.mediaTrackGroup.getFormat(trackIndex)
+                val width = format.width
+                val height = format.height
+                val videoTrack = VideoTrack(width, height)
+                result[videoTrack] = ExoPlayerTrack(
+                    trackGroup = info.mediaTrackGroup,
+                    trackIndexInGroup = trackIndex
+                )
+            }
+        }
+        return result
+    }
+
+    @OptIn(UnstableApi::class)
+    private fun extractSubtitleTracks(info: Tracks.Group): Map<SubtitleTrack, ExoPlayerTrack> {
+        val result = mutableMapOf<SubtitleTrack, ExoPlayerTrack>()
+        for (trackIndex in 0 until info.mediaTrackGroup.length) {
+            if (info.isTrackSupported(trackIndex)) {
+                val format = info.mediaTrackGroup.getFormat(trackIndex)
+                val language = format.language
+                if (language != null) {
+                    val subtitleTrack = SubtitleTrack(language)
+                    result[subtitleTrack] = ExoPlayerTrack(
+                        trackGroup = info.mediaTrackGroup,
+                        trackIndexInGroup = trackIndex
+                    )
+                }
+            }
+        }
+        return result
     }
 
     private val exoPlayer = buildExoPlayer(application).apply {

@@ -1,7 +1,6 @@
 package com.media3.movies.playback
 
 import com.media3.movies.R
-import org.intellij.lang.annotations.Language
 
 data class PlayerUiModel(
     val videoAspectRatio: Float = 16.0f / 9.0f,
@@ -9,7 +8,8 @@ data class PlayerUiModel(
     val placeHolderImageResourceId: Int? = R.drawable.tears_of_steal_cover,
     val playerControlsVisible: Boolean = false,
     val playbackState: PlaybackState = PlaybackState.IDLE,
-    val timelineUiModel: TimelineUiModel? = null
+    val timelineUiModel: TimelineUiModel? = null,
+    val trackSelectionUiModel: TrackSelectionUiModel? = null
 )
 
 enum class PlaybackState {
