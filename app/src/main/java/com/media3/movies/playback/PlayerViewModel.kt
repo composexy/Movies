@@ -337,6 +337,18 @@ class PlayerViewModel(application: Application) : ViewModel() {
         )
     }
 
+    fun openTrackSelector() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            isTrackSelectorVisible = true
+        )
+    }
+
+    fun hideTrackSelector() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            isTrackSelectorVisible = false
+        )
+    }
+
     fun showPlaceHolderImage() {
         _playerUiModel.value = _playerUiModel.value.copy(
             placeHolderImageResourceId = R.drawable.tears_of_steal_cover

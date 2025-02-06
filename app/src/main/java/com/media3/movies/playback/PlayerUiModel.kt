@@ -9,7 +9,8 @@ data class PlayerUiModel(
     val playerControlsVisible: Boolean = false,
     val playbackState: PlaybackState = PlaybackState.IDLE,
     val timelineUiModel: TimelineUiModel? = null,
-    val trackSelectionUiModel: TrackSelectionUiModel? = null
+    val trackSelectionUiModel: TrackSelectionUiModel? = null,
+    val isTrackSelectorVisible: Boolean = false
 )
 
 enum class PlaybackState {

@@ -25,8 +25,12 @@ import androidx.core.view.WindowCompat
 import androidx.core.view.WindowInsetsCompat
 import com.media3.movies.playback.Init
 import com.media3.movies.playback.PlayerViewModel
+import com.media3.movies.playback.SetAudioTrack
+import com.media3.movies.playback.SetSubtitleTrack
+import com.media3.movies.playback.SetVideoTrack
 import com.media3.movies.playback.Start
 import com.media3.movies.playback.Stop
+import com.media3.movies.playback.TrackSelector
 import com.media3.movies.playback.VideoPlayer
 import com.media3.movies.ui.theme.MoviesTheme
 
@@ -54,6 +58,25 @@ class PlaybackActivity : ComponentActivity() {
                         contentAlignment = Alignment.Center
                     ) {
                         VideoPlayer(playerViewModel = playerViewModel)
+                    }
+                    if (playerUiModel.isTrackSelectorVisible) {
+                        playerUiModel.trackSelectionUiModel?.let { trackUiModel ->
+                            TrackSelector(
+                                trackSelectionUiModel = trackUiModel,
+                                onVideoTrackSelected = {
+                                    playerViewModel.handleAction(SetVideoTrack(it))
+                                },
+                                onAudioTrackSelected = {
+                                    playerViewModel.handleAction(SetAudioTrack(it))
+                                },
+                                onSubtitleTrackSelected = {
+                                    playerViewModel.handleAction(SetSubtitleTrack(it))
+                                },
+                                onDismiss = {
+                                    playerViewModel.hideTrackSelector()
+                                }
+                            )
+                        }
                     }
                 }
             }

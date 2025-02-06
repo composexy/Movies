@@ -16,10 +16,15 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.wrapContentHeight
 import androidx.compose.material3.CircularProgressIndicator
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -70,6 +75,9 @@ fun VideoPlayer(
             },
             onAction = {
                 playerViewModel.handleAction(action = it)
+            },
+            onSettingsClicked = {
+                playerViewModel.openTrackSelector()
             }
         )
     }
@@ -82,6 +90,7 @@ fun VideoOverlay(
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit,
     onControlsClicked: () -> Unit,
+    onSettingsClicked: () -> Unit,
     onAction: (Action) -> Unit,
 ) {
     val playerUiModel by playerViewModel.playerUiModel.collectAsState()
@@ -102,6 +111,7 @@ fun VideoOverlay(
                 playerUiModel = playerUiModel,
                 onCollapseClicked = onCollapseClicked,
                 onExpandClicked = onExpandClicked,
+                onSettingsClicked = onSettingsClicked,
                 onAction = onAction,
             )
         }
@@ -115,6 +125,7 @@ fun PlaybackControls(
     isFullScreen: Boolean,
     onCollapseClicked: () -> Unit,
     onExpandClicked: () -> Unit,
+    onSettingsClicked: () -> Unit,
     onAction: (Action) -> Unit,
 ) {
     Box(
@@ -122,8 +133,15 @@ fun PlaybackControls(
             .padding(8.dp)
     ) {
         Row(
-            modifier = Modifier.align(Alignment.TopEnd)
+            modifier = Modifier.align(Alignment.TopEnd),
+            horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
+            PlaybackButton(
+                R.drawable.settings,
+                description = "Open track selector"
+            ) {
+                onSettingsClicked()
+            }
             if (isFullScreen) {
                 PlaybackButton(
                     R.drawable.collapse,
@@ -233,6 +251,105 @@ fun PlaybackControls(
                     bufferedPositionInMs = timeline.bufferedPositionInMs
                 ) {
                     onAction(Seek(it.toLong()))
+                }
+            }
+        }
+    }
+}
+
+private enum class TrackState {
+    VIDEO, AUDIO, SUBTITLE, LIST
+}
+
+@kotlin.OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun TrackSelector(
+    trackSelectionUiModel: TrackSelectionUiModel,
+    onVideoTrackSelected: (VideoTrack) -> Unit,
+    onAudioTrackSelected: (AudioTrack) -> Unit,
+    onSubtitleTrackSelected: (SubtitleTrack) -> Unit,
+    onDismiss: () -> Unit
+) {
+    var currentState by remember { mutableStateOf(TrackState.LIST) }
+
+    ModalBottomSheet(
+        onDismissRequest = onDismiss
+    ) {
+        when (currentState) {
+            TrackState.LIST -> {
+                Column {
+                    Text(
+                        text = "Video Tracks",
+                        modifier = Modifier.clickable {
+                            currentState = TrackState.VIDEO
+                        }.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Text(
+                        text = "Audio Tracks",
+                        modifier = Modifier.clickable {
+                            currentState = TrackState.AUDIO
+                        }.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                    Text(
+                        text = "Subtitle Tracks",
+                        modifier = Modifier.clickable {
+                            currentState = TrackState.SUBTITLE
+                        }.padding(horizontal = 16.dp, vertical = 8.dp)
+                    )
+                }
+            }
+            TrackState.VIDEO -> {
+                Column {
+                    trackSelectionUiModel.videoTracks.forEach { videoTrack ->
+                        Text(
+                            modifier = Modifier.clickable {
+                                onVideoTrackSelected(videoTrack)
+                                onDismiss()
+                            }.padding(horizontal = 16.dp, vertical = 8.dp),
+                            text = videoTrack.displayName,
+                            color = if (videoTrack === trackSelectionUiModel.selectedVideoTrack) {
+                                Color.Yellow
+                            } else {
+                                Color.White
+                            }
+                        )
+                    }
+                }
+            }
+            TrackState.AUDIO -> {
+                Column {
+                    trackSelectionUiModel.audioTracks.forEach { audioTrack ->
+                        Text(
+                            modifier = Modifier.clickable {
+                                onAudioTrackSelected(audioTrack)
+                                onDismiss()
+                            }.padding(horizontal = 16.dp, vertical = 8.dp),
+                            text = audioTrack.displayName,
+                            color = if (audioTrack === trackSelectionUiModel.selectedAudioTrack) {
+                                Color.Yellow
+                            } else {
+                                Color.White
+                            }
+                        )
+                    }
+                }
+            }
+            TrackState.SUBTITLE -> {
+                Column {
+                    trackSelectionUiModel.subtitleTracks.forEach { subtitleTrack ->
+                        Text(
+                            modifier = Modifier.clickable {
+                                onSubtitleTrackSelected(subtitleTrack)
+                                onDismiss()
+                            }.padding(horizontal = 16.dp, vertical = 8.dp),
+                            text = subtitleTrack.displayName,
+                            color = if (subtitleTrack === trackSelectionUiModel.selectedSubtitleTrack) {
+                                Color.Yellow
+                            } else {
+                                Color.White
+                            }
+                        )
+                    }
                 }
             }
         }
