@@ -30,6 +30,7 @@ import androidx.compose.ui.viewinterop.AndroidView
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.DefaultTimeBar
 import androidx.media3.ui.TimeBar
+import com.media3.movies.CoverImage
 import com.media3.movies.R
 import com.media3.movies.Utils
 
@@ -88,6 +89,12 @@ fun VideoOverlay(
     Box(
         modifier = modifier
     ) {
+        playerUiModel.placeHolderImageResourceId?.let {
+            CoverImage(
+                modifier = Modifier.matchParentSize(),
+                imageRes = it
+            )
+        }
         if (playerUiModel.playerControlsVisible) {
             PlaybackControls(
                 modifier = Modifier.matchParentSize().clickable(onClick = onControlsClicked),

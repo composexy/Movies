@@ -8,6 +8,7 @@ import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
 import androidx.media3.common.VideoSize
 import androidx.media3.exoplayer.ExoPlayer
+import com.media3.movies.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
@@ -80,6 +81,16 @@ class PlayerViewModel(application: Application) : ViewModel() {
                     stopTrackingPlaybackPosition()
                 }
             }
+            when (playbackState) {
+                Player.STATE_READY -> {
+                    hidePlaceHolderImage()
+                }
+                Player.STATE_ENDED,
+                Player.STATE_IDLE -> {
+                    showPlaceHolderImage()
+                }
+                else -> {}
+            }
         }
     }
 
@@ -118,6 +129,18 @@ class PlayerViewModel(application: Application) : ViewModel() {
             durationInMs = duration,
             currentPositionInMs = currentPosition,
             bufferedPositionInMs = bufferedPosition
+        )
+    }
+
+    fun showPlaceHolderImage() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            placeHolderImageResourceId = R.drawable.tears_of_steal_cover
+        )
+    }
+
+    fun hidePlaceHolderImage() {
+        _playerUiModel.value = _playerUiModel.value.copy(
+            placeHolderImageResourceId = null
         )
     }
 
