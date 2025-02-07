@@ -11,6 +11,7 @@ import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
 import androidx.media3.common.VideoSize
+import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
 import com.media3.movies.R
@@ -62,6 +63,12 @@ class PlayerViewModel(application: Application) : ViewModel() {
                     playbackState = PlaybackState.PAUSED
                 )
             }
+        }
+
+        override fun onCues(cueGroup: CueGroup) {
+            _playerUiModel.value = _playerUiModel.value.copy(
+                currentSubtitles = cueGroup.cues
+            )
         }
 
         override fun onPlaybackStateChanged(playbackState: Int) {

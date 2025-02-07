@@ -32,8 +32,10 @@ import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.viewinterop.AndroidView
+import androidx.media3.common.text.Cue
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.ui.DefaultTimeBar
+import androidx.media3.ui.SubtitleView
 import androidx.media3.ui.TimeBar
 import com.media3.movies.CoverImage
 import com.media3.movies.R
@@ -115,7 +117,28 @@ fun VideoOverlay(
                 onAction = onAction,
             )
         }
+        Subtitles(
+            modifier = Modifier.matchParentSize(),
+            cues = playerUiModel.currentSubtitles
+        )
     }
+}
+
+@OptIn(UnstableApi::class)
+@Composable
+fun Subtitles(
+    modifier: Modifier = Modifier,
+    cues: List<Cue>,
+) {
+    AndroidView(
+        modifier = modifier,
+        factory = { context ->
+            SubtitleView(context)
+        },
+        update = { subtitleView ->
+            subtitleView.setCues(cues)
+        }
+    )
 }
 
 @Composable
@@ -268,7 +291,7 @@ fun TrackSelector(
     onVideoTrackSelected: (VideoTrack) -> Unit,
     onAudioTrackSelected: (AudioTrack) -> Unit,
     onSubtitleTrackSelected: (SubtitleTrack) -> Unit,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
 ) {
     var currentState by remember { mutableStateOf(TrackState.LIST) }
 

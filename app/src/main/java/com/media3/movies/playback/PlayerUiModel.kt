@@ -1,5 +1,6 @@
 package com.media3.movies.playback
 
+import androidx.media3.common.text.Cue
 import com.media3.movies.R
 
 data class PlayerUiModel(
@@ -10,7 +11,8 @@ data class PlayerUiModel(
     val playbackState: PlaybackState = PlaybackState.IDLE,
     val timelineUiModel: TimelineUiModel? = null,
     val trackSelectionUiModel: TrackSelectionUiModel? = null,
-    val isTrackSelectorVisible: Boolean = false
+    val isTrackSelectorVisible: Boolean = false,
+    val currentSubtitles: List<Cue> = emptyList()
 )
 
 enum class PlaybackState {
