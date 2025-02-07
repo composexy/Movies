@@ -58,6 +58,7 @@ class HomeActivity : ComponentActivity() {
                                             PlaybackActivity.buildIntent(
                                                 context = this@HomeActivity,
                                                 streamUrl = homeUiModel.streamUrl,
+                                                adTagUrl = homeUiModel.adTagUrl
                                             )
                                         )
                                     },

@@ -1,6 +1,7 @@
 package com.media3.movies.playback
 
 import android.app.Application
+import android.net.Uri
 import androidx.annotation.OptIn
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
@@ -404,7 +405,13 @@ class PlayerViewModel(application: Application) : ViewModel() {
                 exoPlayer.seekTo(exoPlayer.currentPosition + action.amountInMs)
             }
             is Init -> {
-                val mediaItem = MediaItem.Builder().setUri(action.streamUrl).build()
+                val mediaItem = MediaItem.Builder().run {
+                    action.adTagUrl?.let {
+                        this.setAdsConfiguration(
+                            MediaItem.AdsConfiguration.Builder(Uri.parse(it)).build()
+                        )
+                    } ?: this
+                }.setUri(action.streamUrl).build()
                 exoPlayer.setMediaItem(mediaItem)
             }
             Pause -> {

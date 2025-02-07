@@ -4,7 +4,7 @@ import android.view.Surface
 
 sealed interface Action
 
-data class Init(val streamUrl: String) : Action
+data class Init(val streamUrl: String, val adTagUrl: String?) : Action
 data object Pause : Action
 data object Resume : Action
 data class Start(val positionInMs: Long? = null) : Action

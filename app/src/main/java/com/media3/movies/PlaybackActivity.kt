@@ -46,7 +46,8 @@ class PlaybackActivity : ComponentActivity() {
         enableEdgeToEdge()
 
         val streamUrl = intent.getStringExtra(KEY_STREAM_URL) ?: throw IllegalArgumentException()
-        playerViewModel.handleAction(Init(streamUrl))
+        val adTagUrl = intent.getStringExtra(KEY_AD_TAG_URL)
+        playerViewModel.handleAction(Init(streamUrl, adTagUrl))
 
         setContent {
             val playerUiModel by playerViewModel.playerUiModel.collectAsState()
@@ -108,11 +109,13 @@ class PlaybackActivity : ComponentActivity() {
 
     companion object {
         private const val KEY_STREAM_URL = "KEY_STREAM_URL"
+        private const val KEY_AD_TAG_URL = "KEY_AD_TAG_URL"
 
-        fun buildIntent(context: Context, streamUrl: String): Intent {
+        fun buildIntent(context: Context, streamUrl: String, adTagUrl: String?): Intent {
             val intent = Intent(context, PlaybackActivity::class.java)
             return intent.apply {
                 putExtra(KEY_STREAM_URL, streamUrl)
+                putExtra(KEY_AD_TAG_URL, adTagUrl)
             }
         }
     }
