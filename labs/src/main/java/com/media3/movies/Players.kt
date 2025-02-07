@@ -1,6 +1,7 @@
 package com.media3.movies
 
 import android.net.Uri
+import androidx.annotation.OptIn
 import androidx.compose.foundation.AndroidEmbeddedExternalSurface
 import androidx.compose.foundation.AndroidExternalSurface
 import androidx.compose.runtime.Composable
@@ -10,6 +11,11 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.MediaItem.DrmConfiguration
+import androidx.media3.common.TrackSelectionParameters
+import androidx.media3.common.util.UnstableApi
+import androidx.media3.exoplayer.DefaultLoadControl
+import androidx.media3.exoplayer.DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+import androidx.media3.exoplayer.DefaultLoadControl.DEFAULT_BUFFER_FOR_PLAYBACK_MS
 import androidx.media3.exoplayer.ExoPlayer
 
 object StreamUrls {
@@ -21,17 +27,22 @@ object StreamUrls {
         "https://proxy.uat.widevine.com/proxy?video_id=GTS_HW_SECURE_ALL&provider=widevine_test"
 }
 
+@OptIn(UnstableApi::class)
 class PlayerConfig(
     val streamUrl: String = StreamUrls.clearStreamUrl,
-    val licenseUrl: String? = null
+    val licenseUrl: String? = null,
+    val minBufferSize: Int = DefaultLoadControl.DEFAULT_MIN_BUFFER_MS,
+    val maxBufferSize: Int = DefaultLoadControl.DEFAULT_MAX_BUFFER_MS,
+    val maxVideoHeight: Int = Int.MAX_VALUE,
 )
 
+@OptIn(UnstableApi::class)
 @Composable
 fun VideoSurface(
     modifier: Modifier = Modifier,
     useSurfaceView: Boolean = true,
     playerConfig: PlayerConfig,
-    player: ExoPlayer = rememberExoPlayer(playerConfig)
+    player: ExoPlayer = rememberExoPlayer(playerConfig),
 ) {
     if (useSurfaceView) {
         AndroidExternalSurface(modifier = modifier) {
@@ -54,10 +65,20 @@ fun VideoSurface(
     }
 }
 
+@OptIn(UnstableApi::class)
 @Composable
 fun rememberExoPlayer(config: PlayerConfig): ExoPlayer {
     val context = LocalContext.current
     return remember {
+        val loadControl = DefaultLoadControl.Builder().setBufferDurationsMs(
+            config.minBufferSize,
+            config.maxBufferSize,
+            DEFAULT_BUFFER_FOR_PLAYBACK_MS,
+            DEFAULT_BUFFER_FOR_PLAYBACK_AFTER_REBUFFER_MS
+        ).build()
+        val videoTrackSelectionParameters = TrackSelectionParameters.Builder(context)
+            .setMaxVideoSize(Int.MAX_VALUE, config.maxVideoHeight)
+            .build()
         val mediaItemBuilder = MediaItem.Builder().apply {
             setUri(Uri.parse(config.streamUrl))
             config.licenseUrl?.let { licenseUrl ->
@@ -68,10 +89,13 @@ fun rememberExoPlayer(config: PlayerConfig): ExoPlayer {
                 )
             }
         }
-        ExoPlayer.Builder(context).build().apply {
-            setMediaItem(mediaItemBuilder.build())
-            prepare()
-            play()
-        }
+        ExoPlayer.Builder(context)
+            .setLoadControl(loadControl)
+            .build().apply {
+                trackSelectionParameters = videoTrackSelectionParameters
+                setMediaItem(mediaItemBuilder.build())
+                prepare()
+                play()
+            }
     }
 }
