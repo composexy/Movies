@@ -15,6 +15,9 @@ import androidx.media3.common.VideoSize
 import androidx.media3.common.text.CueGroup
 import androidx.media3.common.util.UnstableApi
 import androidx.media3.exoplayer.ExoPlayer
+import androidx.media3.exoplayer.ima.ImaAdsLoader
+import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
+import androidx.media3.exoplayer.source.ads.AdsLoader
 import com.media3.movies.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -310,9 +313,21 @@ class PlayerViewModel(application: Application) : ViewModel() {
     private val exoPlayer = buildExoPlayer(application).apply {
         addListener(playerEventListener)
     }
+    private val imaAdsLoader = buildImaAdsLoader(application)
 
     private fun buildExoPlayer(application: Application): ExoPlayer {
-        return ExoPlayer.Builder(application).build()
+        val exoPlayerBuilder = ExoPlayer.Builder(application)
+        val adsProvider = AdsLoader.Provider { imaAdsLoader }
+        val mediaSourceFactory = DefaultMediaSourceFactory(application)
+            .setLocalAdInsertionComponents(adsProvider) { null }
+        return exoPlayerBuilder.setMediaSourceFactory(mediaSourceFactory).build()
+    }
+
+    private fun buildImaAdsLoader(application: Application): ImaAdsLoader {
+        return ImaAdsLoader.Builder(application)
+            .build().also {
+                it.setPlayer(exoPlayer)
+            }
     }
 
     private fun startTrackingPlaybackPosition() {
