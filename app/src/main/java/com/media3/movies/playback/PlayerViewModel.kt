@@ -8,6 +8,7 @@ import androidx.lifecycle.ViewModelProvider
 import androidx.media3.common.C
 import androidx.media3.common.MediaItem
 import androidx.media3.common.Player
+import androidx.media3.common.Timeline
 import androidx.media3.common.TrackGroup
 import androidx.media3.common.TrackSelectionOverride
 import androidx.media3.common.Tracks
@@ -18,6 +19,7 @@ import androidx.media3.exoplayer.ExoPlayer
 import androidx.media3.exoplayer.ima.ImaAdsLoader
 import androidx.media3.exoplayer.source.DefaultMediaSourceFactory
 import androidx.media3.exoplayer.source.ads.AdsLoader
+import com.google.ads.interactivemedia.v3.api.AdEvent
 import com.media3.movies.R
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -323,19 +325,88 @@ class PlayerViewModel(application: Application) : ViewModel() {
         return exoPlayerBuilder.setMediaSourceFactory(mediaSourceFactory).build()
     }
 
+    @OptIn(UnstableApi::class)
     private fun buildImaAdsLoader(application: Application): ImaAdsLoader {
         return ImaAdsLoader.Builder(application)
+            .setAdEventListener {
+                processAdEvents(it)
+            }
             .build().also {
                 it.setPlayer(exoPlayer)
             }
     }
 
+    private fun processAdEvents(adEvent: AdEvent) {
+        when (adEvent.type) {
+            AdEvent.AdEventType.AD_PROGRESS -> {
+                val adPod = adEvent.ad?.adPodInfo
+                adPod?.let {
+                    val adBreak = AdBreak(
+                        adIndexInGroup = adPod.adPosition,
+                        totalAdsInGroup = adPod.totalAds,
+                        playbackPositionInMs = exoPlayer.currentPosition,
+                        durationInMs = exoPlayer.duration
+                    )
+                    _playerUiModel.value = _playerUiModel.value.copy(
+                        adUiModel = _playerUiModel.value.adUiModel?.copy(
+                            currentAdBreak = adBreak
+                        )
+                    )
+                }
+            }
+            AdEvent.AdEventType.COMPLETED -> {
+                val adBreak = _playerUiModel.value.adUiModel?.currentAdBreak
+                val isLastInGroup = adBreak?.adIndexInGroup == adBreak?.totalAdsInGroup
+                if (isLastInGroup) {
+                    _playerUiModel.value = _playerUiModel.value.copy(
+                        adUiModel = _playerUiModel.value.adUiModel?.copy(
+                            currentAdBreak = null
+                        )
+                    )
+                }
+            }
+            else -> {}
+        }
+    }
+
+    private fun buildAdGroups(): List<AdGroup> {
+        val adGroups = mutableListOf<AdGroup>()
+        val timeline = exoPlayer.currentTimeline
+        if (!timeline.isEmpty) {
+            val window = Timeline.Window()
+            val period = Timeline.Period()
+            timeline.getWindow(0, window)
+            timeline.getPeriod(window.firstPeriodIndex, period)
+            val adGroupCount = period.adGroupCount
+            for (index in 0 until adGroupCount) {
+                val adGroupTimeInUs = period.getAdGroupTimeUs(index)
+                val isPostRoll = adGroupTimeInUs == C.TIME_END_OF_SOURCE
+                val adGroupTimeInMs = if (isPostRoll) {
+                    exoPlayer.contentDuration
+                } else {
+                    adGroupTimeInUs / 1000L
+                }
+                val isPlayed = period.hasPlayedAdGroup(index)
+                adGroups.add(AdGroup(adGroupTimeInMs, isPlayed))
+            }
+        }
+        return adGroups
+    }
+
     private fun startTrackingPlaybackPosition() {
         positionTrackingJob = playerCoroutineScope.launch {
             while (true) {
-                val newTimelineUiModel = buildTimelineUiModel()
+                val newTimelineUiModel = buildTimelineUiModel() ?: _playerUiModel.value.timelineUiModel
+                val newAdUiModel = if (_playerUiModel.value.adUiModel != null) {
+                    _playerUiModel.value.adUiModel?.copy(
+                        adGroups = buildAdGroups()
+                    )
+                } else {
+                    AdUiModel(currentAdBreak = null, adGroups = buildAdGroups())
+                }
                 _playerUiModel.value = _playerUiModel.value.copy(
-                    timelineUiModel = newTimelineUiModel
+                    timelineUiModel = newTimelineUiModel,
+                    adUiModel = newAdUiModel
                 )
                 delay(1000)
             }
