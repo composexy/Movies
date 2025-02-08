@@ -12,12 +12,30 @@ data class PlayerUiModel(
     val timelineUiModel: TimelineUiModel? = null,
     val trackSelectionUiModel: TrackSelectionUiModel? = null,
     val isTrackSelectorVisible: Boolean = false,
+    val adUiModel: AdUiModel? = null,
     val currentSubtitles: List<Cue> = emptyList()
 )
 
 enum class PlaybackState {
     IDLE, PLAYING, PAUSED, BUFFERING, COMPLETED, ERROR
 }
+
+data class AdUiModel(
+    val currentAdBreak: AdBreak?,
+    val adGroups: List<AdGroup>
+)
+
+data class AdGroup(
+    val positionInMs: Long,
+    val hasPlayed: Boolean
+)
+
+data class AdBreak(
+    val adIndexInGroup: Int,
+    val totalAdsInGroup: Int,
+    val durationInMs: Long,
+    val playbackPositionInMs: Long
+)
 
 data class TimelineUiModel(
     val durationInMs: Long,
