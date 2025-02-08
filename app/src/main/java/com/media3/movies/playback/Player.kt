@@ -159,11 +159,13 @@ fun PlaybackControls(
             modifier = Modifier.align(Alignment.TopEnd),
             horizontalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            PlaybackButton(
-                R.drawable.settings,
-                description = "Open track selector"
-            ) {
-                onSettingsClicked()
+            if (playerUiModel.adUiModel?.currentAdBreak == null) {
+                PlaybackButton(
+                    R.drawable.settings,
+                    description = "Open track selector"
+                ) {
+                    onSettingsClicked()
+                }
             }
             if (isFullScreen) {
                 PlaybackButton(
@@ -181,82 +183,89 @@ fun PlaybackControls(
                 }
             }
         }
-        Row(
-            modifier = Modifier.align(Alignment.Center),
-            horizontalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            if (playerUiModel.playbackState.isReady()) {
-                PlaybackButton(
-                    R.drawable.startover,
-                    description = "Start over"
-                ) {
-                    onAction(Seek(0))
-                }
-                PlaybackButton(
-                    R.drawable.rewind,
-                    description = "Rewind"
-                ) {
-                    onAction(Rewind(15_000))
-                }
-            }
-            when (playerUiModel.playbackState) {
-                PlaybackState.PLAYING -> {
+        if (playerUiModel.adUiModel?.currentAdBreak == null) {
+            Row(
+                modifier = Modifier.align(Alignment.Center),
+                horizontalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                if (playerUiModel.playbackState.isReady()) {
                     PlaybackButton(
-                        R.drawable.pause,
-                        description = "Pause"
+                        R.drawable.startover,
+                        description = "Start over"
                     ) {
-                        onAction(Pause)
+                        onAction(Seek(0))
+                    }
+                    PlaybackButton(
+                        R.drawable.rewind,
+                        description = "Rewind"
+                    ) {
+                        onAction(Rewind(15_000))
                     }
                 }
-                PlaybackState.PAUSED -> {
-                    PlaybackButton(
-                        R.drawable.play,
-                        description = "Play"
-                    ) {
-                        onAction(Resume)
+                when (playerUiModel.playbackState) {
+                    PlaybackState.PLAYING -> {
+                        PlaybackButton(
+                            R.drawable.pause,
+                            description = "Pause"
+                        ) {
+                            onAction(Pause)
+                        }
+                    }
+
+                    PlaybackState.PAUSED -> {
+                        PlaybackButton(
+                            R.drawable.play,
+                            description = "Play"
+                        ) {
+                            onAction(Resume)
+                        }
+                    }
+
+                    PlaybackState.IDLE -> {
+                        PlaybackButton(
+                            R.drawable.play,
+                            description = "Start"
+                        ) {
+                            onAction(Start())
+                        }
+                    }
+
+                    PlaybackState.BUFFERING -> {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(32.dp),
+                            color = Color.White
+                        )
+                    }
+
+                    PlaybackState.COMPLETED -> {
+                        PlaybackButton(
+                            R.drawable.replay,
+                            description = "Replay"
+                        ) {
+                            onAction(Start(0))
+                        }
+                    }
+
+                    PlaybackState.ERROR -> {
+                        PlaybackButton(
+                            R.drawable.error,
+                            description = "Error"
+                        )
+                        PlaybackButton(
+                            R.drawable.replay,
+                            description = "Retry"
+                        ) {
+                            onAction(Start(playerUiModel.timelineUiModel?.currentPositionInMs))
+                        }
                     }
                 }
-                PlaybackState.IDLE -> {
+                if (playerUiModel.playbackState.isReady()) {
                     PlaybackButton(
-                        R.drawable.play,
-                        description = "Start"
+                        R.drawable.fastforward,
+                        description = "Fast forward"
                     ) {
-                        onAction(Start())
+                        onAction(FastForward(15_000))
                     }
-                }
-                PlaybackState.BUFFERING -> {
-                    CircularProgressIndicator(
-                        modifier = Modifier.size(32.dp),
-                        color = Color.White
-                    )
-                }
-                PlaybackState.COMPLETED -> {
-                    PlaybackButton(
-                        R.drawable.replay,
-                        description = "Replay"
-                    ) {
-                        onAction(Start(0))
-                    }
-                }
-                PlaybackState.ERROR -> {
-                    PlaybackButton(
-                        R.drawable.error,
-                        description = "Error"
-                    )
-                    PlaybackButton(
-                        R.drawable.replay,
-                        description = "Retry"
-                    ) {
-                        onAction(Start(playerUiModel.timelineUiModel?.currentPositionInMs))
-                    }
-                }
-            }
-            if (playerUiModel.playbackState.isReady()) {
-                PlaybackButton(
-                    R.drawable.fastforward,
-                    description = "Fast forward"
-                ) {
-                    onAction(FastForward(15_000))
                 }
             }
         }
@@ -266,14 +275,18 @@ fun PlaybackControls(
             ) {
                 PlaybackPosition(
                     contentPositionInMs = timeline.currentPositionInMs,
-                    contentDurationInMs = timeline.durationInMs
+                    contentDurationInMs = timeline.durationInMs,
+                    adBreak = playerUiModel.adUiModel?.currentAdBreak
                 )
-                TimeBar(
-                    positionInMs = timeline.currentPositionInMs,
-                    durationInMs = timeline.durationInMs,
-                    bufferedPositionInMs = timeline.bufferedPositionInMs
-                ) {
-                    onAction(Seek(it.toLong()))
+                if (playerUiModel.adUiModel?.currentAdBreak == null) {
+                    TimeBar(
+                        positionInMs = timeline.currentPositionInMs,
+                        durationInMs = timeline.durationInMs,
+                        bufferedPositionInMs = timeline.bufferedPositionInMs,
+                        adGroups = playerUiModel.adUiModel?.adGroups ?: emptyList()
+                    ) {
+                        onAction(Seek(it.toLong()))
+                    }
                 }
             }
         }
@@ -383,13 +396,23 @@ fun TrackSelector(
 fun PlaybackPosition(
     contentPositionInMs: Long,
     contentDurationInMs: Long,
+    adBreak: AdBreak?,
 ) {
-    val positionString = Utils.formatMsToString(contentPositionInMs)
-    val durationString = Utils.formatMsToString(contentDurationInMs)
-    Text(
-        text = "$positionString / $durationString",
-        fontSize = 10.sp
-    )
+    if (adBreak == null) {
+        val positionString = Utils.formatMsToString(contentPositionInMs)
+        val durationString = Utils.formatMsToString(contentDurationInMs)
+        Text(
+            text = "$positionString / $durationString",
+            fontSize = 10.sp
+        )
+    } else {
+        val positionString = Utils.formatMsToString(adBreak.playbackPositionInMs)
+        val durationString = Utils.formatMsToString(adBreak.durationInMs)
+        Text(
+            text = "Ad ${adBreak.adIndexInGroup} of ${adBreak.totalAdsInGroup} ($positionString / $durationString)",
+            fontSize = 10.sp
+        )
+    }
 }
 
 @OptIn(UnstableApi::class)
@@ -398,7 +421,8 @@ fun TimeBar(
     positionInMs: Long,
     durationInMs: Long,
     bufferedPositionInMs: Long,
-    onSeek: (Float) -> Unit,
+    adGroups: List<AdGroup>,
+    onSeek: (Float) -> Unit
 ) {
     AndroidView(
         modifier = Modifier.fillMaxWidth().wrapContentHeight(),
@@ -407,6 +431,8 @@ fun TimeBar(
                 setScrubberColor(0xFFFF0000.toInt())
                 setPlayedColor(0xCCFF0000.toInt())
                 setBufferedColor(0x77FF0000)
+                setAdMarkerColor(0xFFFFFF00.toInt())
+                setPlayedAdMarkerColor(0xFF888888.toInt())
             }
         },
         update = { timeBar ->
@@ -421,6 +447,11 @@ fun TimeBar(
                 setDuration(durationInMs)
                 setPosition(positionInMs)
                 setBufferedPosition(bufferedPositionInMs)
+                setAdGroupTimesMs(
+                    adGroups.map { it.positionInMs }.toLongArray(),
+                    adGroups.map { it.hasPlayed }.toBooleanArray(),
+                    adGroups.size
+                )
             }
         }
     )
