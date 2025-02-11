@@ -9,6 +9,9 @@ git checkout v1.0
 This repository contains two modules:
 
 app module: A sample app demonstrating media playback using ExoPlayer and Jetpack Compose.
+
+![App module screenshot](assets/course_demo.png)
+
 labs module: A demo app that showcases various use cases with ExoPlayer:
 
 [`DrmContentTests.kt`](labs/src/main/java/com/media3/movies/DrmContentTests.kt): Comparison between TextureView and SurfaceView for DRM content playback.
